@@ -8,27 +8,19 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ========== Windows PC harness ==========
   build-pc-testforissues-windows:
     name: TestForIssues (Windows GUI)
     runs-on: windows-latest
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-
+      - uses: ilammy/msvc-dev-cmd@v1
       - name: Configure
         working-directory: port/pc
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl
-
       - name: Build
         working-directory: port/pc
         run: cmake --build build --config Release
-
-      - name: Upload
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: TestForIssues-windows
           path: |
@@ -36,93 +28,59 @@ jobs:
             port/pc/build/TestForIssues_console.exe
           if-no-files-found: error
 
-  # ========== Linux harness ==========
   build-pc-testforissues-linux:
     name: TestForIssues (Linux)
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake g++ ninja-build
-
-      - name: Build
-        working-directory: port/pc
+      - run: sudo apt-get update && sudo apt-get install -y cmake g++ ninja-build
+      - working-directory: port/pc
         run: |
           cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
           cmake --build build
-
       - uses: actions/upload-artifact@v4
         with:
           name: TestForIssues-linux
           path: port/pc/build/TestForIssues
           if-no-files-found: error
 
-  # ========== Android APK (phone) ==========
   AndroidBuild:
     name: AndroidBuild
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v3
 
-      - name: Install NDK + CMake + platform tools
-        run: |
-          sdkmanager --install "ndk;26.1.10909125" "cmake;3.22.1" "platforms;android-34" "build-tools;34.0.0"
+      - name: Install NDK + CMake
+        run: sdkmanager --install "ndk;26.1.10909125" "cmake;3.22.1" "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Copy common sources into Android cpp/
+      - name: Copy common (+ GS/VK) into Android cpp/
         run: |
           DEST=port/android/app/src/main/cpp
           mkdir -p "$DEST"
-          cp -v port/common/rom_check.cpp port/common/rom_check.h "$DEST/" || true
-          cp -v port/common/iso9660.cpp port/common/iso9660.h "$DEST/" || true
-          cp -v port/common/prlib_stub.cpp port/common/prlib_stub.h "$DEST/" || true
+          cp -v port/common/*.cpp port/common/*.h "$DEST/" || true
           ls -la "$DEST"
 
       - name: Gradle wrapper
         working-directory: port/android
         run: |
           gradle wrapper --gradle-version 8.2 || true
-          if [ ! -f gradlew ]; then
-            # bootstrap minimal wrapper jar-less invoke via system gradle
-            echo "No gradlew; using system gradle"
-          else
-            chmod +x gradlew
-          fi
+          chmod +x gradlew 2>/dev/null || true
 
       - name: Assemble Debug APK
         working-directory: port/android
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/26.1.10909125
         run: |
-          if [ -f gradlew ]; then
-            ./gradlew assembleDebug --stacktrace
-          else
-            gradle assembleDebug --stacktrace
+          if [ -f gradlew ]; then ./gradlew assembleDebug --stacktrace
+          else gradle assembleDebug --stacktrace
           fi
 
-      - name: Find APK
-        id: findapk
-        run: |
-          find port/android -name "*.apk" -type f || true
-          APK=$(find port/android -path "*/outputs/apk/debug/*.apk" | head -n 1)
-          echo "apk=$APK" >> $GITHUB_OUTPUT
-          ls -la "$APK" || true
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: AndroidBuild-apk
           path: port/android/app/build/outputs/apk/debug/*.apk
