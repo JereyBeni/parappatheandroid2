@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.widget.Button;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,6 +19,8 @@ public class MainActivity extends Activity {
     private static final int REQ_PICK = 1001;
 
     private TextView log;
+    private TextView screen;
+    private ScrollView scrollLog;
     private String copiedPath;
 
     static {
@@ -30,6 +33,7 @@ public class MainActivity extends Activity {
     public native String nativeInfo();
     public native String verifyPath(String path);
     public native String gsVulkanSmoke();
+    public native String runEmuDemo(int frames);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,10 +41,37 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         log = findViewById(R.id.txtLog);
-        Button btnPick = findViewById(R.id.btnPick);
-        Button btnVerify = findViewById(R.id.btnVerify);
-        Button btnInfo = findViewById(R.id.btnNativeInfo);
+        screen = findViewById(R.id.txtScreen);
+        scrollLog = findViewById(R.id.scrollLog);
+
+        Button btnEmu = findViewById(R.id.btnEmu);
         Button btnGs = findViewById(R.id.btnGsVk);
+        Button btnPick = findViewById(R.id.btnPick);
+        Button btnInfo = findViewById(R.id.btnNativeInfo);
+
+        btnEmu.setOnClickListener(v -> {
+            append("\n======== EMU SESSION ========\n");
+            screen.setText("[GS framebuffer]\nrunning demo frames...");
+            try {
+                String out = runEmuDemo(5);
+                append(out);
+                screen.setText("[GS framebuffer]\n640x448 PSMCT32\n5 frames submitted\n(NullDevice — log only)");
+            } catch (UnsatisfiedLinkError e) {
+                append("FAIL native: " + e.getMessage() + "\n");
+                screen.setText("native FAIL");
+            }
+            scrollLog.post(() -> scrollLog.fullScroll(ScrollView.FOCUS_DOWN));
+        });
+
+        btnGs.setOnClickListener(v -> {
+            append("\n=== GS -> Vulkan smoke ===\n");
+            try {
+                append(gsVulkanSmoke() + "\n");
+            } catch (UnsatisfiedLinkError e) {
+                append("FAIL: " + e.getMessage() + "\n");
+            }
+            scrollLog.post(() -> scrollLog.fullScroll(ScrollView.FOCUS_DOWN));
+        });
 
         btnPick.setOnClickListener(v -> {
             Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -49,41 +80,16 @@ public class MainActivity extends Activity {
             startActivityForResult(i, REQ_PICK);
         });
 
-        btnVerify.setOnClickListener(v -> {
-            if (copiedPath == null) {
-                toast("Primero elegi un archivo chico, o confia en el size check del pick");
-                return;
-            }
-            append("\nVerificando: " + copiedPath + "\n");
-            try {
-                append(verifyPath(copiedPath) + "\n");
-            } catch (UnsatisfiedLinkError e) {
-                File f = new File(copiedPath);
-                long size = f.length();
-                long expected = 4159078400L;
-                append("size=" + size + " expected=" + expected + "\n");
-            }
-        });
-
         btnInfo.setOnClickListener(v -> {
             try {
                 append(nativeInfo() + "\n");
             } catch (UnsatisfiedLinkError e) {
-                append("Native lib no cargada: " + e.getMessage() + "\n");
+                append("Native no cargada\n");
             }
         });
 
-        btnGs.setOnClickListener(v -> {
-            append("\n=== GS -> Vulkan smoke ===\n");
-            try {
-                append(gsVulkanSmoke() + "\n");
-            } catch (UnsatisfiedLinkError e) {
-                append("FAIL native: " + e.getMessage() + "\n");
-            }
-        });
-
-        append("Path B + traduccion GS->Vulkan.\n");
-        append("El .bin vive en el celu. Boton 4 prueba el pipeline de traduccion.\n\n");
+        append("UI dual: pantalla GS arriba + log del juego abajo.\n");
+        append("▶ Emu = boot EE/IOP/prlib + frames GS→VK (log en vivo).\n\n");
     }
 
     @Override
@@ -95,16 +101,14 @@ public class MainActivity extends Activity {
 
         String name = queryName(uri);
         append("Picked: " + name + "\n");
-
         try {
-            File out = new File(getCacheDir(), name != null ? name : "picked.bin");
             long expected = 4159078400L;
             long reported = querySize(uri);
             if (reported > 0) {
-                append("Reported size: " + reported + " bytes\n");
-                append(reported == expected ? "SIZE matches July 12 prototype!\n" : "SIZE mismatch\n");
+                append("size=" + reported + (reported == expected ? " OK July12\n" : " mismatch\n"));
             }
             if (reported > 0 && reported < 200L * 1024 * 1024) {
+                File out = new File(getCacheDir(), name != null ? name : "picked.bin");
                 try (InputStream in = getContentResolver().openInputStream(uri);
                      FileOutputStream fos = new FileOutputStream(out)) {
                     byte[] buf = new byte[1024 * 1024];
@@ -112,10 +116,10 @@ public class MainActivity extends Activity {
                     while ((n = in.read(buf)) > 0) fos.write(buf, 0, n);
                 }
                 copiedPath = out.getAbsolutePath();
-                append("Cached: " + copiedPath + "\n");
+                append("cached " + copiedPath + "\n");
             } else {
                 copiedPath = null;
-                append("Archivo grande: no se copia (ahorra espacio en celu).\n");
+                append("bin grande: no se copia al cache\n");
             }
         } catch (Exception e) {
             append("Error: " + e.getMessage() + "\n");
@@ -142,6 +146,7 @@ public class MainActivity extends Activity {
         return -1;
     }
 
-    private void append(String s) { log.append(s); }
-    private void toast(String s) { Toast.makeText(this, s, Toast.LENGTH_SHORT).show(); }
+    private void append(String s) {
+        log.append(s);
+    }
 }

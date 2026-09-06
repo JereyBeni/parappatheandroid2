@@ -3,52 +3,97 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="8dp">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="PaRappa 2 - Android Harness"
-        android:textSize="18sp"
+        android:text="PaRappa 2 — Emu + GS→VK log"
+        android:textSize="16sp"
         android:textStyle="bold"
-        android:paddingBottom="8dp" />
+        android:paddingBottom="4dp" />
 
-    <Button
-        android:id="@+id/btnPick"
+    <!-- "Screen" area (placeholder until real Vulkan surface) -->
+    <FrameLayout
+        android:id="@+id/renderHost"
+        android:layout_width="match_parent"
+        android:layout_height="160dp"
+        android:background="#FF1A1A2E">
+
+        <TextView
+            android:id="@+id/txtScreen"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textColor="#FFEEEEFF"
+            android:textSize="13sp"
+            android:fontFamily="monospace"
+            android:text="[GS framebuffer]\nNullDevice — no pixels yet\nRun Emu to fill log →" />
+    </FrameLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="1. Elegir .bin / archivo" />
+        android:orientation="horizontal"
+        android:paddingTop="6dp">
 
-    <Button
-        android:id="@+id/btnVerify"
+        <Button
+            android:id="@+id/btnEmu"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="▶ Emu + log" />
+
+        <Button
+            android:id="@+id/btnGsVk"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="GS smoke" />
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="2. Verify size (July 12)" />
+        android:orientation="horizontal">
 
-    <Button
-        android:id="@+id/btnNativeInfo"
+        <Button
+            android:id="@+id/btnPick"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Pick .bin" />
+
+        <Button
+            android:id="@+id/btnNativeInfo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Native" />
+    </LinearLayout>
+
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="3. Native lib info" />
-
-    <Button
-        android:id="@+id/btnGsVk"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="4. GS -> Vulkan smoke test" />
+        android:text="Game log"
+        android:textStyle="bold"
+        android:paddingTop="4dp" />
 
     <ScrollView
+        android:id="@+id/scrollLog"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="8dp">
+        android:background="#FF0D0D12">
 
         <TextView
             android:id="@+id/txtLog"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:fontFamily="monospace"
-            android:textSize="12sp"
-            android:text="Path B + traduccion GS a Vulkan.\n" />
+            android:textSize="11sp"
+            android:textColor="#FFB8F0C8"
+            android:padding="8dp"
+            android:text="Log del juego / harness.\n▶ Emu corre boot EE/IOP/prlib/GS + frames.\n" />
     </ScrollView>
 </LinearLayout>
