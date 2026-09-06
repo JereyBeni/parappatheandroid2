@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-pc-testforissues-windows:
-    name: TestForIssues (Windows GUI)
+    name: TestForIssues (Windows PC)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,45 +43,3 @@ jobs:
           name: TestForIssues-linux
           path: port/pc/build/TestForIssues
           if-no-files-found: error
-
-  AndroidBuild:
-    name: AndroidBuild
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - uses: android-actions/setup-android@v3
-
-      - name: Install NDK + CMake
-        run: sdkmanager --install "ndk;26.1.10909125" "cmake;3.22.1" "platforms;android-34" "build-tools;34.0.0"
-
-      - name: Copy common (+ GS/VK) into Android cpp/
-        run: |
-          DEST=port/android/app/src/main/cpp
-          mkdir -p "$DEST"
-          cp -v port/common/*.cpp port/common/*.h "$DEST/" || true
-          ls -la "$DEST"
-
-      - name: Gradle wrapper
-        working-directory: port/android
-        run: |
-          gradle wrapper --gradle-version 8.2 || true
-          chmod +x gradlew 2>/dev/null || true
-
-      - name: Assemble Debug APK
-        working-directory: port/android
-        run: |
-          if [ -f gradlew ]; then ./gradlew assembleDebug --stacktrace
-          else gradle assembleDebug --stacktrace
-          fi
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: AndroidBuild-apk
-          path: port/android/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: warn

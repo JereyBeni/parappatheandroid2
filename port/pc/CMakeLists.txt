@@ -1,0 +1,32 @@
+cmake_minimum_required(VERSION 3.16)
+project(TestForIssues LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(COMMON
+    ../common/rom_check.cpp
+    ../common/iso9660.cpp
+    ../common/gs_translate.cpp
+    ../common/vk_backend.cpp
+    ../common/host_translate.cpp
+)
+
+if(WIN32)
+    add_executable(TestForIssues WIN32 main_gui.cpp ${COMMON})
+    target_include_directories(TestForIssues PRIVATE ../common)
+    target_link_libraries(TestForIssues PRIVATE comdlg32 user32 gdi32)
+    if(MSVC)
+        target_compile_options(TestForIssues PRIVATE /W4 /utf-8)
+    endif()
+
+    add_executable(TestForIssues_console main.cpp ${COMMON})
+    target_include_directories(TestForIssues_console PRIVATE ../common)
+    set_target_properties(TestForIssues_console PROPERTIES WIN32_EXECUTABLE FALSE)
+    if(MSVC)
+        target_link_options(TestForIssues_console PRIVATE /SUBSYSTEM:CONSOLE)
+        target_compile_options(TestForIssues_console PRIVATE /W4 /utf-8)
+    endif()
+else()
+    add_executable(TestForIssues main.cpp ${COMMON})
+    target_include_directories(TestForIssues PRIVATE ../common)
+endif()
