@@ -15,6 +15,9 @@ struct SessionConfig {
     uint32_t width = 640;
     uint32_t height = 448;
     bool use_tim2_placeholder = true;
+    /** true when host confirmed July 12 .BIN is present */
+    bool rom_present = false;
+    std::string rom_name;
 };
 
 class Session {
@@ -27,9 +30,9 @@ public:
     bool step_frame(int frame_index);
     std::string run_demo(int frames = 3);
 
-    // For UI: after boot/step, read pixels
     VKBackend::Device* device() { return m_dev.get(); }
     const GS::Translator& translator() const { return m_tr; }
+    bool rom_present() const { return m_cfg.rom_present; }
 
 private:
     void log(const std::string& s);

@@ -11,14 +11,30 @@
 
 static std::mutex g_mu;
 static std::unique_ptr<Emu::Session> g_session;
+static bool g_rom_present = false;
+static std::string g_rom_name;
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_parappa_theandroid2_MainActivity_nativeInfo(JNIEnv* env, jobject) {
     std::string s =
         "parappa2 native OK\n"
-        "backend: SoftDevice (CPU raster to screen)\n"
-        "modules: emu_session gs_translate vk_backend\n";
+        "backend: SoftDevice\n";
+    s += g_rom_present ? "[ROM] flagged present\n" : "[ROM] not flagged\n";
     return env->NewStringUTF(s.c_str());
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_parappa_theandroid2_MainActivity_setRomPresent(JNIEnv* env, jobject, jboolean present, jstring name) {
+    std::lock_guard<std::mutex> lock(g_mu);
+    g_rom_present = (present == JNI_TRUE);
+    g_rom_name.clear();
+    if (name) {
+        const char* p = env->GetStringUTFChars(name, nullptr);
+        if (p) {
+            g_rom_name = p;
+            env->ReleaseStringUTFChars(name, p);
+        }
+    }
 }
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -62,13 +78,16 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_com_parappa_theandroid2_MainActivity_emuBoot(JNIEnv* env, jobject) {
     std::lock_guard<std::mutex> lock(g_mu);
     g_session = std::make_unique<Emu::Session>();
-    if (!g_session->boot()) {
+    Emu::SessionConfig cfg;
+    cfg.rom_present = g_rom_present;
+    cfg.rom_name = g_rom_name;
+    if (!g_session->boot(cfg)) {
         return env->NewStringUTF("BOOT FAIL\n");
     }
-    return env->NewStringUTF(
-        "[EMU] SoftDevice boot OK (640x448)\n"
-        "[EE/IOP/prlib] stubs loaded\n"
-        "[TIM2] placeholder ready\n");
+    std::string msg = g_rom_present
+        ? "[EMU] SoftDevice boot OK — ROM mode\n"
+        : "[EMU] SoftDevice boot OK — DEMO (WARNING: no BIN)\n";
+    return env->NewStringUTF(msg.c_str());
 }
 
 extern "C" JNIEXPORT jstring JNICALL

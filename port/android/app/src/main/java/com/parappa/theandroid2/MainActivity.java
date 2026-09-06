@@ -1,6 +1,7 @@
 package com.parappa.theandroid2;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -12,9 +13,11 @@ import android.provider.OpenableColumns;
 import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
     private static final int REQ_PICK = 1001;
+    private static final long JULY12_SIZE = 4159078400L;
 
     private TextView log;
     private ScrollView scrollLog;
@@ -23,6 +26,11 @@ public class MainActivity extends Activity {
     private boolean playing = false;
     private int frame = 0;
     private Bitmap fbBitmap;
+
+    /** true only after user picked a file that matches July 12 prototype size */
+    private boolean romLoaded = false;
+    private String romName = null;
+    private long romSize = -1;
 
     static {
         try {
@@ -85,21 +93,64 @@ public class MainActivity extends Activity {
         findViewById(R.id.btnNativeInfo).setOnClickListener(v -> {
             try {
                 append(nativeInfo() + "\n");
+                append(romStatusLine() + "\n");
             } catch (UnsatisfiedLinkError e) {
                 append("Native no cargada\n");
             }
         });
 
-        append("SoftDevice: sprites en movimiento arriba + log abajo.\n▶ Play emu\n\n");
+        append("1) Pick .bin  (July 12 prototype)\n");
+        append("2) Play emu\n\n");
+        append(romStatusLine() + "\n\n");
+    }
+
+    private String romStatusLine() {
+        if (romLoaded) {
+            return "[ROM] OK — " + romName + " (" + romSize + " bytes) July 12";
+        }
+        return "[ROM] WARNING — no .BIN loaded (harness only / no real assets)";
     }
 
     private void startEmu() {
         stopEmu();
         append("\n======== EMU PLAY ========\n");
+        append(romStatusLine() + "\n");
+
+        if (!romLoaded) {
+            // Warning but still allow play (procedural Parappa)
+            append("[WARN] Sin .BIN correcto: solo demo procedural.\n");
+            append("[WARN] Importa PS2 - Parappa 7-12-07.bin para modo ROM.\n");
+            Toast.makeText(this,
+                    "WARNING: No July 12 .BIN\nDemo only (no ROM assets)",
+                    Toast.LENGTH_LONG).show();
+            new AlertDialog.Builder(this)
+                    .setTitle("ROM missing")
+                    .setMessage(
+                            "No July 12 prototype .BIN detected.\n\n" +
+                            "Expected: PS2 - Parappa 7-12-07.bin\n" +
+                            "Size: 4159078400 bytes\n\n" +
+                            "Emu will run in DEMO mode (procedural Parappa).\n" +
+                            "Use Pick .bin to import the ROM.")
+                    .setPositiveButton("Play demo", (d, w) -> doBootAndPlay())
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            return;
+        }
+
+        append("[ROM] Using imported dump — harness linked to July 12.\n");
+        doBootAndPlay();
+    }
+
+    private void doBootAndPlay() {
         try {
             String boot = emuBoot();
             append(boot != null ? boot : "boot null\n");
             if (boot != null && boot.contains("FAIL")) return;
+            if (romLoaded) {
+                append("[ROM] session flagged with BIN present\n");
+            } else {
+                append("[WARN] session DEMO (no BIN)\n");
+            }
             frame = 0;
             playing = true;
             blitFramebuffer();
@@ -138,6 +189,7 @@ public class MainActivity extends Activity {
         if (requestCode != REQ_PICK || resultCode != RESULT_OK || data == null) return;
         Uri uri = data.getData();
         if (uri == null) return;
+
         String name = "file.bin";
         long size = -1;
         try (Cursor c = getContentResolver().query(uri, null, null, null, null)) {
@@ -148,8 +200,31 @@ public class MainActivity extends Activity {
                 if (si >= 0) size = c.getLong(si);
             }
         } catch (Exception ignored) {}
-        append("Picked: " + name + " size=" + size + "\n");
-        if (size == 4159078400L) append("SIZE OK July 12\n");
+
+        append("Picked: " + name + "\n");
+        append("size=" + size + "\n");
+
+        romName = name;
+        romSize = size;
+
+        if (size == JULY12_SIZE) {
+            romLoaded = true;
+            append("[ROM] OK — July 12 prototype size match\n");
+            append("[ROM] Listo para Play emu\n");
+            Toast.makeText(this, "ROM OK — July 12", Toast.LENGTH_SHORT).show();
+        } else if (size > 0) {
+            romLoaded = false;
+            append("[ROM] WARNING — size mismatch\n");
+            append("[ROM] expected " + JULY12_SIZE + " (July 12 NTSC-J prototype)\n");
+            append("[ROM] got      " + size + "\n");
+            Toast.makeText(this,
+                    "WARNING: Not July 12 .BIN\nsize mismatch",
+                    Toast.LENGTH_LONG).show();
+        } else {
+            romLoaded = false;
+            append("[ROM] WARNING — could not read size\n");
+            Toast.makeText(this, "WARNING: cannot verify ROM size", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void append(String s) {
