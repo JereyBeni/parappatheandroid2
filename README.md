@@ -1,16 +1,14 @@
-# PaRappa the Rapper 2 Decompilation
+# PaRappa the Rapper 2 For Android
 ![build](https://img.shields.io/github/actions/workflow/status/parappadev/parappa2/build.yml?branch=main&label=build)
 ![progress](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/parappadev/parappa2/main/progress/total_progress.json)
 ![discord](https://img.shields.io/discord/302537923910303744?color=%235865F2&logo=discord&logoColor=%23FFFFFF)
 
 <img src=".github/resources/transparent.png" style="margin:7px" align="right" width="20%" alt="PaRappa icon by pips">
 
-A work-in-progress decompilation of [*PaRappa the Rapper 2*](https://en.wikipedia.org/wiki/PaRappa_the_Rapper_2) (パラッパラッパー2) for the PlayStation 2.<br>
-We are currently targeting the July 12th NTSC-J prototype, but we aim to target the final NTSC-J/NTSC/PAL builds in the foreseeable future.<br><br>
-For any questions, we have a home at the [PS1/PS2 Decompilation Discord server](https://discord.gg/VwCPdfbxgm) and the [PaRappa the Rapper Modding Community Discord server](https://discord.gg/xpvVnYd).
+hello i made this shit fork.
 
 ### Progress
-*For a more detailed view of the progress, please check our [decomp(dot)dev page](https://decomp.dev/parappadev/parappa2).*
+just see down here, i dont own decomp.dev parappa2´s page.
 
 #### EE Core
 | Folder | Progress | Description
