@@ -16,10 +16,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure (MSVC)
+      # Activa el entorno de MSVC (cl.exe, link.exe, etc.)
+      - name: Setup MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure (Ninja + MSVC)
         working-directory: port/pc
         run: |
-          cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Debug
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl
 
       - name: Build TestForIssues
         working-directory: port/pc
@@ -30,7 +34,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: TestForIssues-windows
-          path: port/pc/build/Debug/TestForIssues.exe
+          path: |
+            port/pc/build/TestForIssues.exe
+            port/pc/build/Debug/TestForIssues.exe
           if-no-files-found: error
 
   build-pc-testforissues-linux:
