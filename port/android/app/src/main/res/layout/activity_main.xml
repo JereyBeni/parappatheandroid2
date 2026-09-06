@@ -31,6 +31,12 @@
         android:layout_height="wrap_content"
         android:text="3. Native lib info" />
 
+    <Button
+        android:id="@+id/btnGsVk"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="4. GS -> Vulkan smoke test" />
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -43,6 +49,6 @@
             android:layout_height="wrap_content"
             android:fontFamily="monospace"
             android:textSize="12sp"
-            android:text="Elegi un archivo del celu (el .bin puede vivir en Downloads del telefono).\n" />
+            android:text="Path B + traduccion GS a Vulkan.\n" />
     </ScrollView>
 </LinearLayout>
