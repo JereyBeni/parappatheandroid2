@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(COMMON_SRC
     ../common/rom_check.cpp
     ../common/iso9660.cpp
+    ../common/prlib_stub.cpp
 )
 
 if(WIN32)
