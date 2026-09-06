@@ -1,17 +1,20 @@
 #pragma once
 
 #include "gs_types.h"
+#include <cstdint>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
-// Vulkan backend interface for GS translation output.
-// On Android we can later use VK_ANDROID_external_memory_android_hardware_buffer etc.
-// For now: stub that records what it would submit.
+// Backend for GS translation output.
+// SoftDevice = CPU rasterizer (visible pixels now).
+// Real Vulkan device comes later on top of the same interface.
 
 namespace VKBackend {
 
 struct Config {
     uint32_t width = 640;
-    uint32_t height = 448; // typical PS2 progressive-ish test size
+    uint32_t height = 448;
     bool enable_validation = false;
 };
 
@@ -22,34 +25,52 @@ public:
     virtual bool init(const Config& cfg) = 0;
     virtual void shutdown() = 0;
 
-    // Upload a decoded TIM2 RGBA texture (host -> GPU)
     virtual bool upload_texture_rgba(uint32_t id, uint32_t w, uint32_t h,
                                      const uint8_t* rgba) = 0;
 
-    // Submit translated GS draws
     virtual bool submit(const GS::DrawRequest* draws, uint32_t count) = 0;
+
+    // Clear framebuffer (ARGB-ish host: R,G,B,A bytes)
+    virtual void clear(uint8_t r, uint8_t g, uint8_t b, uint8_t a) = 0;
+
+    // Host-readable framebuffer (RGBA8888), size width*height*4
+    virtual const uint8_t* framebuffer() const = 0;
+    virtual uint32_t fb_width() const = 0;
+    virtual uint32_t fb_height() const = 0;
 
     virtual std::string info() const = 0;
 };
 
-// Software/null backend - always available (no Vulkan required to test translation)
-class NullDevice final : public Device {
+// CPU rasterizer — draws GS sprites into an RGBA buffer
+class SoftDevice final : public Device {
 public:
     bool init(const Config& cfg) override;
     void shutdown() override;
     bool upload_texture_rgba(uint32_t id, uint32_t w, uint32_t h, const uint8_t* rgba) override;
     bool submit(const GS::DrawRequest* draws, uint32_t count) override;
+    void clear(uint8_t r, uint8_t g, uint8_t b, uint8_t a) override;
+    const uint8_t* framebuffer() const override { return m_fb.empty() ? nullptr : m_fb.data(); }
+    uint32_t fb_width() const override { return m_cfg.width; }
+    uint32_t fb_height() const override { return m_cfg.height; }
     std::string info() const override;
 
 private:
+    void draw_sprite(const GS::DrawRequest& d);
+    void put_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+
     Config m_cfg;
     bool m_ok = false;
+    std::vector<uint8_t> m_fb; // RGBA
+    struct Tex {
+        uint32_t w = 0, h = 0;
+        std::vector<uint8_t> rgba;
+    };
+    std::unordered_map<uint32_t, Tex> m_tex;
     uint32_t m_tex_uploads = 0;
     uint32_t m_draw_batches = 0;
     uint32_t m_draw_verts = 0;
 };
 
-// Factory: tries real Vulkan later; today returns NullDevice
 Device* create_device();
 
 } // namespace VKBackend
