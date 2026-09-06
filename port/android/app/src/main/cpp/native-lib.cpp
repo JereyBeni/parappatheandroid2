@@ -2,6 +2,7 @@
 #include <string>
 #include <memory>
 #include <mutex>
+#include <vector>
 
 #include "rom_check.h"
 #include "gs_translate.h"
@@ -15,7 +16,7 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_com_parappa_theandroid2_MainActivity_nativeInfo(JNIEnv* env, jobject) {
     std::string s =
         "parappa2 native OK\n"
-        "backend: SoftDevice (CPU raster → screen)\n"
+        "backend: SoftDevice (CPU raster to screen)\n"
         "modules: emu_session gs_translate vk_backend\n";
     return env->NewStringUTF(s.c_str());
 }
@@ -54,23 +55,26 @@ Java_com_parappa_theandroid2_MainActivity_runEmuDemo(JNIEnv* env, jobject, jint 
     g_session = std::make_unique<Emu::Session>();
     int n = frames > 0 ? (int)frames : 5;
     if (n > 120) n = 120;
-    std::string out = g_session->run_demo(n);
-    return env->NewStringUTF(out.c_str());
+    return env->NewStringUTF(g_session->run_demo(n).c_str());
 }
 
-// Boot persistent session for animated playback
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_parappa_theandroid2_MainActivity_emuBoot(JNIEnv*, jobject) {
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_parappa_theandroid2_MainActivity_emuBoot(JNIEnv* env, jobject) {
     std::lock_guard<std::mutex> lock(g_mu);
     g_session = std::make_unique<Emu::Session>();
-    return g_session->boot() ? JNI_TRUE : JNI_FALSE;
+    if (!g_session->boot()) {
+        return env->NewStringUTF("BOOT FAIL\n");
+    }
+    return env->NewStringUTF(
+        "[EMU] SoftDevice boot OK (640x448)\n"
+        "[EE/IOP/prlib] stubs loaded\n"
+        "[TIM2] placeholder ready\n");
 }
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_parappa_theandroid2_MainActivity_emuStep(JNIEnv* env, jobject, jint frame) {
     std::lock_guard<std::mutex> lock(g_mu);
     if (!g_session) return env->NewStringUTF("not booted");
-    // capture last log line via temporary
     std::string last;
     g_session->set_log([&](const std::string& s) { last = s; });
     g_session->step_frame((int)frame);
@@ -78,7 +82,6 @@ Java_com_parappa_theandroid2_MainActivity_emuStep(JNIEnv* env, jobject, jint fra
     return env->NewStringUTF(last.c_str());
 }
 
-// Returns ARGB_8888 int[] for Bitmap.copyPixelsFromBuffer / setPixels
 extern "C" JNIEXPORT jintArray JNICALL
 Java_com_parappa_theandroid2_MainActivity_emuFramebuffer(JNIEnv* env, jobject) {
     std::lock_guard<std::mutex> lock(g_mu);

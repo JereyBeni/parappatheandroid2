@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.OpenableColumns;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -36,7 +35,7 @@ public class MainActivity extends Activity {
     public native String verifyPath(String path);
     public native String gsVulkanSmoke();
     public native String runEmuDemo(int frames);
-    public native boolean emuBoot();
+    public native String emuBoot();
     public native String emuStep(int frame);
     public native int[] emuFramebuffer();
     public native int emuWidth();
@@ -48,17 +47,19 @@ public class MainActivity extends Activity {
             if (!playing) return;
             try {
                 String line = emuStep(frame);
-                append(line + "\n");
+                if (line != null && !line.isEmpty()) append(line + "\n");
                 blitFramebuffer();
                 frame++;
-                if (frame > 300) frame = 0; // loop animation
+                if (frame > 300) frame = 0;
             } catch (UnsatisfiedLinkError e) {
                 append("native error: " + e.getMessage() + "\n");
                 playing = false;
                 return;
             }
-            scrollLog.post(() -> scrollLog.fullScroll(ScrollView.FOCUS_DOWN));
-            handler.postDelayed(this, 50); // ~20 fps soft
+            if (frame % 10 == 0) {
+                scrollLog.post(() -> scrollLog.fullScroll(ScrollView.FOCUS_DOWN));
+            }
+            handler.postDelayed(this, 50);
         }
     };
 
@@ -71,22 +72,17 @@ public class MainActivity extends Activity {
         scrollLog = findViewById(R.id.scrollLog);
         imgScreen = findViewById(R.id.imgScreen);
 
-        Button btnEmu = findViewById(R.id.btnEmu);
-        Button btnStop = findViewById(R.id.btnStop);
-        Button btnPick = findViewById(R.id.btnPick);
-        Button btnInfo = findViewById(R.id.btnNativeInfo);
+        findViewById(R.id.btnEmu).setOnClickListener(v -> startEmu());
+        findViewById(R.id.btnStop).setOnClickListener(v -> stopEmu());
 
-        btnEmu.setOnClickListener(v -> startEmu());
-        btnStop.setOnClickListener(v -> stopEmu());
-
-        btnPick.setOnClickListener(v -> {
+        findViewById(R.id.btnPick).setOnClickListener(v -> {
             Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             i.addCategory(Intent.CATEGORY_OPENABLE);
             i.setType("*/*");
             startActivityForResult(i, REQ_PICK);
         });
 
-        btnInfo.setOnClickListener(v -> {
+        findViewById(R.id.btnNativeInfo).setOnClickListener(v -> {
             try {
                 append(nativeInfo() + "\n");
             } catch (UnsatisfiedLinkError e) {
@@ -94,21 +90,19 @@ public class MainActivity extends Activity {
             }
         });
 
-        append("SoftDevice raster: vas a VER sprites en movimiento.\n");
-        append("▶ Play emu — pantalla + log.\n\n");
+        append("SoftDevice: sprites en movimiento arriba + log abajo.\n▶ Play emu\n\n");
     }
 
     private void startEmu() {
         stopEmu();
         append("\n======== EMU PLAY ========\n");
         try {
-            if (!emuBoot()) {
-                append("BOOT FAIL\n");
-                return;
-            }
-            append("[EMU] boot OK — animating\n");
+            String boot = emuBoot();
+            append(boot != null ? boot : "boot null\n");
+            if (boot != null && boot.contains("FAIL")) return;
             frame = 0;
             playing = true;
+            blitFramebuffer();
             handler.post(tick);
         } catch (UnsatisfiedLinkError e) {
             append("FAIL: " + e.getMessage() + "\n");
@@ -118,7 +112,6 @@ public class MainActivity extends Activity {
     private void stopEmu() {
         playing = false;
         handler.removeCallbacks(tick);
-        append("[EMU] stopped\n");
     }
 
     private void blitFramebuffer() {
