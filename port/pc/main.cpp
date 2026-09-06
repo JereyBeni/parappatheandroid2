@@ -4,6 +4,7 @@
 #include "gs_translate.h"
 #include <cstdio>
 #include <string>
+#include <vector>
 
 int main(int argc, char** argv) {
     std::printf("%s\n", Host::translation_map_text().c_str());
@@ -31,7 +32,6 @@ int main(int argc, char** argv) {
         std::printf("(no BIN — translation layer still OK)\n");
     }
 
-    // One GS frame through Host::Gpu
     GS::Translator tr;
     tr.set_frame(640, 448, GS::Psm::PSMCT32);
     tr.emit_rect_flat(0, 380, 640, 448, 0.4f, 0.2f, 0.6f);
@@ -49,7 +49,6 @@ int main(int argc, char** argv) {
     std::printf("[VBL] count=%llu t=%.3fs\n",
                 (unsigned long long)host.time->vblank_count(), host.time->seconds());
 
-    // Dummy silence audio queue
     std::vector<int16_t> silence(480 * 2, 0);
     host.audio->queue(silence.data(), 480);
     std::printf("[AUD] %s\n", host.audio->info().c_str());
