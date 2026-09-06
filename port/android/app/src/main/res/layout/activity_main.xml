@@ -8,28 +8,18 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="PaRappa 2 — Emu + GS→VK log"
+        android:text="PaRappa 2 — Emu screen + log"
         android:textSize="16sp"
-        android:textStyle="bold"
-        android:paddingBottom="4dp" />
+        android:textStyle="bold" />
 
-    <!-- "Screen" area (placeholder until real Vulkan surface) -->
-    <FrameLayout
-        android:id="@+id/renderHost"
+    <ImageView
+        android:id="@+id/imgScreen"
         android:layout_width="match_parent"
-        android:layout_height="160dp"
-        android:background="#FF1A1A2E">
-
-        <TextView
-            android:id="@+id/txtScreen"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:textColor="#FFEEEEFF"
-            android:textSize="13sp"
-            android:fontFamily="monospace"
-            android:text="[GS framebuffer]\nNullDevice — no pixels yet\nRun Emu to fill log →" />
-    </FrameLayout>
+        android:layout_height="200dp"
+        android:layout_marginTop="6dp"
+        android:background="#FF111122"
+        android:scaleType="fitCenter"
+        android:contentDescription="GS framebuffer" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -42,14 +32,14 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="▶ Emu + log" />
+            android:text="▶ Play emu" />
 
         <Button
-            android:id="@+id/btnGsVk"
+            android:id="@+id/btnStop"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="GS smoke" />
+            android:text="■ Stop" />
     </LinearLayout>
 
     <LinearLayout
@@ -94,6 +84,6 @@
             android:textSize="11sp"
             android:textColor="#FFB8F0C8"
             android:padding="8dp"
-            android:text="Log del juego / harness.\n▶ Emu corre boot EE/IOP/prlib/GS + frames.\n" />
+            android:text="▶ Play emu = pantalla + log en vivo.\n" />
     </ScrollView>
 </LinearLayout>

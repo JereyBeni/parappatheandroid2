@@ -7,9 +7,6 @@
 #include <string>
 #include <vector>
 
-// Lightweight "emulation session" for the harness.
-// Not a full PS2 CPU core — drives prlib/GS translation pipeline and emits a game log.
-
 namespace Emu {
 
 using LogFn = std::function<void(const std::string&)>;
@@ -30,8 +27,9 @@ public:
     bool step_frame(int frame_index);
     std::string run_demo(int frames = 3);
 
-    const GS::Translator& translator() const { return m_tr; }
+    // For UI: after boot/step, read pixels
     VKBackend::Device* device() { return m_dev.get(); }
+    const GS::Translator& translator() const { return m_tr; }
 
 private:
     void log(const std::string& s);
