@@ -8,6 +8,8 @@ set(COMMON_SRC
     ../common/rom_check.cpp
     ../common/iso9660.cpp
     ../common/prlib_stub.cpp
+    ../common/gs_translate.cpp
+    ../common/vk_backend.cpp
 )
 
 if(WIN32)
