@@ -1,11 +1,12 @@
 #include "rom_check.h"
 #include <cstdio>
+#include <cstring>
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <iomanip>
 #include <vector>
 
-// Minimal SHA1 (public domain style compact)
 namespace {
 struct SHA1 {
     uint32_t h0=0x67452301,h1=0xEFCDAB89,h2=0x98BADCFE,h3=0x10325476,h4=0xC3D2E1F0;
