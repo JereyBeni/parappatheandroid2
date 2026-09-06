@@ -4,11 +4,15 @@ project(TestForIssues LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(COMMON_SRC
+    ../common/rom_check.cpp
+    ../common/iso9660.cpp
+)
+
 if(WIN32)
-    # ---- GUI version (default on Windows) ----
     add_executable(TestForIssues WIN32
         main_gui.cpp
-        ../common/rom_check.cpp
+        ${COMMON_SRC}
     )
     target_include_directories(TestForIssues PRIVATE ../common)
     if(MSVC)
@@ -18,10 +22,9 @@ if(WIN32)
     endif()
     target_link_libraries(TestForIssues PRIVATE comdlg32 user32 gdi32)
 
-    # Console version also on Windows (for debugging)
     add_executable(TestForIssues_console
         main.cpp
-        ../common/rom_check.cpp
+        ${COMMON_SRC}
     )
     target_include_directories(TestForIssues_console PRIVATE ../common)
     set_target_properties(TestForIssues_console PROPERTIES WIN32_EXECUTABLE FALSE)
@@ -30,10 +33,9 @@ if(WIN32)
         target_compile_options(TestForIssues_console PRIVATE /W4 /utf-8)
     endif()
 else()
-    # Linux / macOS: console only
     add_executable(TestForIssues
         main.cpp
-        ../common/rom_check.cpp
+        ${COMMON_SRC}
     )
     target_include_directories(TestForIssues PRIVATE ../common)
     target_compile_options(TestForIssues PRIVATE -Wall -Wextra)
