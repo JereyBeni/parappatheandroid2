@@ -1,5 +1,4 @@
 // TestForIssues - PC dev build
-// Simple harness to test ROM detection + future port code
 // Accepts .bin (official Hidden Palace dump) or .iso if byte-identical
 
 #include "../common/rom_check.h"
@@ -7,6 +6,7 @@
 #include <string>
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -25,62 +25,81 @@ static bool has_extension(const std::string& path, const char* ext) {
     return lower.compare(lower.size() - e.size(), e.size(), e) == 0;
 }
 
-void print_banner() {
+static void setup_console() {
+#ifdef _WIN32
+    // UTF-8 console + force stdout visible
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
+    std::cout.setf(std::ios::unitbuf); // auto-flush
+    std::cerr.setf(std::ios::unitbuf);
+}
+
+static void pause_if_windows() {
+#ifdef _WIN32
+    std::cout << "\nPresiona Enter para salir...\n";
+    std::cout.flush();
+    std::cin.get();
+#endif
+}
+
+int main(int argc, char** argv) {
+    setup_console();
+
     std::cout << "========================================\n";
     std::cout << "  PaRappa the Rapper 2 - TestForIssues\n";
     std::cout << "  PC Dev Build (July 12 Prototype only)\n";
     std::cout << "========================================\n\n";
-}
-
-int main(int argc, char** argv) {
-    print_banner();
+    std::cout.flush();
 
     if (argc < 2) {
-        std::cout << "Uso: TestForIssues <ruta_al_archivo.bin>\n\n";
-        std::cout << "Formato esperado:\n";
-        std::cout << "  - .bin  (dump oficial Hidden Palace)\n";
-        std::cout << "  - .iso  (solo si el contenido es identico al .bin)\n\n";
-        std::cout << "Ejemplo:\n";
-        std::cout << "  TestForIssues \"PS2 - Parappa 7-12-07.bin\"\n\n";
-        std::cout << "Archivo oficial:\n";
-        std::cout << "  PS2 - Parappa 7-12-07.bin\n";
-        std::cout << "  Tamaño: 4159078400 bytes\n";
-        std::cout << "  SHA1:   28964c33cee578ec3ce476285067044243363d08\n\n";
-        std::cout << "Este build SOLO acepta la July 12 2001 NTSC-J Prototype.\n";
+        std::cout << "Uso:\n";
+        std::cout << "  TestForIssues.exe \"ruta\\al\\PS2 - Parappa 7-12-07.bin\"\n\n";
+        std::cout << "Formato esperado: .bin (dump oficial) o .iso identico\n";
+        std::cout << "Tamano esperado: 4159078400 bytes\n";
+        std::cout << "SHA1 esperado:   28964c33cee578ec3ce476285067044243363d08\n\n";
+        pause_if_windows();
         return 1;
     }
 
     std::string path = argv[1];
-    std::cout << "Verificando: " << path << "\n";
+    std::cout << "Archivo: " << path << "\n";
 
-    if (!has_extension(path, ".bin") && !has_extension(path, ".iso")) {
-        std::cout << "\n⚠️ Extension no tipica. Se esperaba .bin (o .iso).\n";
-        std::cout << "Igual se va a verificar por tamaño + SHA1...\n\n";
-    } else if (has_extension(path, ".bin")) {
-        std::cout << "Formato: .bin (dump esperado)\n\n";
+    if (has_extension(path, ".bin")) {
+        std::cout << "Extension: .bin (ok)\n\n";
+    } else if (has_extension(path, ".iso")) {
+        std::cout << "Extension: .iso (ok si el contenido matchea)\n\n";
     } else {
-        std::cout << "Formato: .iso (se acepta si el contenido matchea el .bin oficial)\n\n";
+        std::cout << "Extension rara, igual verifico por tamano+SHA1...\n\n";
     }
+    std::cout.flush();
 
-    // Fast check first
+    std::cout << "[1/2] Check rapido (tamano)...\n";
+    std::cout.flush();
+
     auto fast = RomCheck::verify_iso_fast(path);
     if (fast.result != RomCheck::Result::OK) {
-        std::cout << "❌ " << fast.message << "\n";
+        std::cout << "FAIL: " << fast.message << "\n";
+        pause_if_windows();
         return 2;
     }
+    std::cout << "OK: " << fast.message << "\n\n";
+    std::cout.flush();
 
-    std::cout << "→ " << fast.message << "\n";
-    std::cout << "Calculando SHA1 completo (puede tardar, el archivo pesa ~3.87 GB)...\n";
+    std::cout << "[2/2] Calculando SHA1 completo (~3.87 GB, puede tardar 20-60s)...\n";
+    std::cout.flush();
 
     auto full = RomCheck::verify_iso(path);
 
     if (full.result == RomCheck::Result::OK) {
-        std::cout << "\n✅ " << full.message << "\n";
+        std::cout << "\nSUCCESS: " << full.message << "\n";
         std::cout << "SHA1: " << full.detected_sha1 << "\n";
-        std::cout << "\nListo para cargar el juego (cuando el port esté más avanzado).\n";
+        std::cout << "\nROM correcta. Listo para el port.\n";
+        pause_if_windows();
         return 0;
-    } else {
-        std::cout << "\n❌ " << full.message << "\n";
-        return 3;
     }
+
+    std::cout << "\nFAIL: " << full.message << "\n";
+    pause_if_windows();
+    return 3;
 }
