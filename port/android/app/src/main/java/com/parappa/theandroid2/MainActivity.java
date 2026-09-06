@@ -18,18 +18,18 @@ public class MainActivity extends Activity {
     private static final int REQ_PICK = 1001;
 
     private TextView log;
-    private String copiedPath; // local cache of picked file
+    private String copiedPath;
 
     static {
         try {
             System.loadLibrary("parappa2");
         } catch (UnsatisfiedLinkError e) {
-            // native may fail on some emulators; UI still works
         }
     }
 
     public native String nativeInfo();
     public native String verifyPath(String path);
+    public native String gsVulkanSmoke();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +40,7 @@ public class MainActivity extends Activity {
         Button btnPick = findViewById(R.id.btnPick);
         Button btnVerify = findViewById(R.id.btnVerify);
         Button btnInfo = findViewById(R.id.btnNativeInfo);
+        Button btnGs = findViewById(R.id.btnGsVk);
 
         btnPick.setOnClickListener(v -> {
             Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -50,20 +51,17 @@ public class MainActivity extends Activity {
 
         btnVerify.setOnClickListener(v -> {
             if (copiedPath == null) {
-                toast("Primero elegi un archivo");
+                toast("Primero elegi un archivo chico, o confia en el size check del pick");
                 return;
             }
             append("\nVerificando: " + copiedPath + "\n");
             try {
-                String r = verifyPath(copiedPath);
-                append(r + "\n");
+                append(verifyPath(copiedPath) + "\n");
             } catch (UnsatisfiedLinkError e) {
-                // fallback pure Java size check
                 File f = new File(copiedPath);
                 long size = f.length();
                 long expected = 4159078400L;
                 append("size=" + size + " expected=" + expected + "\n");
-                append(size == expected ? "SIZE OK (July 12)\n" : "SIZE MISMATCH\n");
             }
         });
 
@@ -75,8 +73,17 @@ public class MainActivity extends Activity {
             }
         });
 
-        append("Harness Android.\nPodes dejar el .bin en el celu (mucho espacio).\n");
-        append("No hace falta copiarlo a la PC.\n\n");
+        btnGs.setOnClickListener(v -> {
+            append("\n=== GS -> Vulkan smoke ===\n");
+            try {
+                append(gsVulkanSmoke() + "\n");
+            } catch (UnsatisfiedLinkError e) {
+                append("FAIL native: " + e.getMessage() + "\n");
+            }
+        });
+
+        append("Path B + traduccion GS->Vulkan.\n");
+        append("El .bin vive en el celu. Boton 4 prueba el pipeline de traduccion.\n\n");
     }
 
     @Override
@@ -88,27 +95,15 @@ public class MainActivity extends Activity {
 
         String name = queryName(uri);
         append("Picked: " + name + "\n");
-        append("(copiando a cache interna para NDK... puede tardar si es 3.8GB)\n");
 
-        // NOTE: full 3.8GB copy is heavy. For size-only check we stream length via ParcelFileDescriptor if possible.
         try {
-            // Prefer not to full-copy huge files: store URI string and only copy if needed.
-            // For native path-based APIs we still need a real path -> copy to cache.
             File out = new File(getCacheDir(), name != null ? name : "picked.bin");
             long expected = 4159078400L;
-
-            // Fast path: if we can get size from cursor and it matches, note it without full copy for now
             long reported = querySize(uri);
             if (reported > 0) {
                 append("Reported size: " + reported + " bytes\n");
-                if (reported == expected) {
-                    append("SIZE matches July 12 prototype!\n");
-                } else {
-                    append("SIZE does not match expected " + expected + "\n");
-                }
+                append(reported == expected ? "SIZE matches July 12 prototype!\n" : "SIZE mismatch\n");
             }
-
-            // Only copy if smaller than 200MB (IRX/OLM tests). Skip full ISO copy on phone by default.
             if (reported > 0 && reported < 200L * 1024 * 1024) {
                 try (InputStream in = getContentResolver().openInputStream(uri);
                      FileOutputStream fos = new FileOutputStream(out)) {
@@ -117,11 +112,10 @@ public class MainActivity extends Activity {
                     while ((n = in.read(buf)) > 0) fos.write(buf, 0, n);
                 }
                 copiedPath = out.getAbsolutePath();
-                append("Cached at: " + copiedPath + "\n");
+                append("Cached: " + copiedPath + "\n");
             } else {
                 copiedPath = null;
-                append("Archivo grande: no se copia entero al cache (ahorra espacio).\n");
-                append("Size check ya hecho arriba. Extract/prlib en PC o con copy selectivo despues.\n");
+                append("Archivo grande: no se copia (ahorra espacio en celu).\n");
             }
         } catch (Exception e) {
             append("Error: " + e.getMessage() + "\n");
@@ -148,11 +142,6 @@ public class MainActivity extends Activity {
         return -1;
     }
 
-    private void append(String s) {
-        log.append(s);
-    }
-
-    private void toast(String s) {
-        Toast.makeText(this, s, Toast.LENGTH_SHORT).show();
-    }
+    private void append(String s) { log.append(s); }
+    private void toast(String s) { Toast.makeText(this, s, Toast.LENGTH_SHORT).show(); }
 }
