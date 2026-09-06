@@ -27,7 +27,6 @@ public class MainActivity extends Activity {
     private int frame = 0;
     private Bitmap fbBitmap;
 
-    /** true only after user picked a file that matches July 12 prototype size */
     private boolean romLoaded = false;
     private String romName = null;
     private long romSize = -1;
@@ -40,6 +39,7 @@ public class MainActivity extends Activity {
     }
 
     public native String nativeInfo();
+    public native void setRomPresent(boolean present, String name);
     public native String verifyPath(String path);
     public native String gsVulkanSmoke();
     public native String runEmuDemo(int frames);
@@ -99,6 +99,11 @@ public class MainActivity extends Activity {
             }
         });
 
+        try {
+            setRomPresent(false, null);
+        } catch (UnsatisfiedLinkError ignored) {
+        }
+
         append("1) Pick .bin  (July 12 prototype)\n");
         append("2) Play emu\n\n");
         append(romStatusLine() + "\n\n");
@@ -117,11 +122,10 @@ public class MainActivity extends Activity {
         append(romStatusLine() + "\n");
 
         if (!romLoaded) {
-            // Warning but still allow play (procedural Parappa)
             append("[WARN] Sin .BIN correcto: solo demo procedural.\n");
             append("[WARN] Importa PS2 - Parappa 7-12-07.bin para modo ROM.\n");
             Toast.makeText(this,
-                    "WARNING: No July 12 .BIN\nDemo only (no ROM assets)",
+                    "WARNING: No July 12 .BIN\nDemo only",
                     Toast.LENGTH_LONG).show();
             new AlertDialog.Builder(this)
                     .setTitle("ROM missing")
@@ -129,7 +133,7 @@ public class MainActivity extends Activity {
                             "No July 12 prototype .BIN detected.\n\n" +
                             "Expected: PS2 - Parappa 7-12-07.bin\n" +
                             "Size: 4159078400 bytes\n\n" +
-                            "Emu will run in DEMO mode (procedural Parappa).\n" +
+                            "Emu runs in DEMO mode.\n" +
                             "Use Pick .bin to import the ROM.")
                     .setPositiveButton("Play demo", (d, w) -> doBootAndPlay())
                     .setNegativeButton("Cancel", null)
@@ -137,20 +141,16 @@ public class MainActivity extends Activity {
             return;
         }
 
-        append("[ROM] Using imported dump — harness linked to July 12.\n");
+        append("[ROM] Using imported dump — July 12.\n");
         doBootAndPlay();
     }
 
     private void doBootAndPlay() {
         try {
+            setRomPresent(romLoaded, romName);
             String boot = emuBoot();
             append(boot != null ? boot : "boot null\n");
             if (boot != null && boot.contains("FAIL")) return;
-            if (romLoaded) {
-                append("[ROM] session flagged with BIN present\n");
-            } else {
-                append("[WARN] session DEMO (no BIN)\n");
-            }
             frame = 0;
             playing = true;
             blitFramebuffer();
@@ -209,21 +209,22 @@ public class MainActivity extends Activity {
 
         if (size == JULY12_SIZE) {
             romLoaded = true;
+            try { setRomPresent(true, name); } catch (UnsatisfiedLinkError ignored) {}
             append("[ROM] OK — July 12 prototype size match\n");
             append("[ROM] Listo para Play emu\n");
             Toast.makeText(this, "ROM OK — July 12", Toast.LENGTH_SHORT).show();
         } else if (size > 0) {
             romLoaded = false;
+            try { setRomPresent(false, name); } catch (UnsatisfiedLinkError ignored) {}
             append("[ROM] WARNING — size mismatch\n");
-            append("[ROM] expected " + JULY12_SIZE + " (July 12 NTSC-J prototype)\n");
+            append("[ROM] expected " + JULY12_SIZE + "\n");
             append("[ROM] got      " + size + "\n");
-            Toast.makeText(this,
-                    "WARNING: Not July 12 .BIN\nsize mismatch",
-                    Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "WARNING: Not July 12 .BIN", Toast.LENGTH_LONG).show();
         } else {
             romLoaded = false;
+            try { setRomPresent(false, null); } catch (UnsatisfiedLinkError ignored) {}
             append("[ROM] WARNING — could not read size\n");
-            Toast.makeText(this, "WARNING: cannot verify ROM size", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "WARNING: cannot verify ROM", Toast.LENGTH_LONG).show();
         }
     }
 
